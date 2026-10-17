@@ -1,0 +1,553 @@
+@extends('layouts.app')
+
+@section('title', 'Dashboard Admin')
+
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.css" rel="stylesheet">
+<style>
+    :root {
+        --primary-emerald: #059669;
+        --primary-teal: #0d9488;
+        --primary-sage: #65a30d;
+        --secondary-white: #ffffff;
+        --secondary-gray: #f3f4f6;
+        --secondary-stone: #e5e7eb;
+        --accent-mint: #a7f3d0;
+        --accent-olive: #bef264;
+        --text-dark: #1f2937;
+        --text-light: #6b7280;
+    }
+
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary-emerald) 0%, var(--primary-teal) 100%);
+        border-radius: 16px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.25rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 200px;
+        height: 200px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .dashboard-header::after {
+        content: '';
+        position: absolute;
+        bottom: -30px;
+        left: -30px;
+        width: 120px;
+        height: 120px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0) translateX(0); }
+        50% { transform: translateY(-20px) translateX(10px); }
+    }
+
+    /* Stat Cards - Base styles (no flex direction, will use inline) */
+    .stat-card {
+        background: var(--secondary-white);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        border: 1px solid var(--secondary-stone);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary-emerald), var(--primary-teal));
+    }
+
+    .stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .bg-primary-soft { background: linear-gradient(135deg, #dcfce7, var(--accent-mint)); color: var(--primary-emerald); }
+    .bg-success-soft { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #15803d; }
+    .bg-warning-soft { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
+    .bg-danger-soft { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #b91c1c; }
+    .bg-info-soft { background: linear-gradient(135deg, #cffafe, #a5f3fc); color: #0891b2; }
+    .bg-purple-soft { background: linear-gradient(135deg, #f3e8ff, #e9d5ff); color: #7c3aed; }
+    .bg-sickness-soft { background: linear-gradient(135deg, #ffedd5, #fed7aa); color: #c2410c; }
+    .bg-permission-soft { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1d4ed8; }
+
+    .stat-data {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .stat-data h3 {
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0;
+        color: var(--text-dark);
+    }
+
+    .stat-data p {
+        font-size: 11px;
+        color: var(--text-light);
+        margin: 2px 0 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Section Cards */
+    .section-card {
+        background: var(--secondary-white);
+        border-radius: 12px;
+        padding: 1.15rem 1.25rem;
+        border: 1px solid var(--secondary-stone);
+    }
+
+    .section-card h5 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .section-card h5 i {
+        font-size: 0.82rem;
+    }
+
+    /* Schedule Items */
+    .schedule-item {
+        padding: 0.55rem 0.7rem;
+        border-radius: 8px;
+        background: var(--secondary-gray);
+        margin-bottom: 0.35rem;
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+    }
+
+    .schedule-item.active {
+        background: linear-gradient(135deg, var(--accent-mint), #bbf7d0);
+        border-left-color: var(--primary-emerald);
+    }
+
+    /* Info Box Grid */
+    .info-box {
+        background: var(--secondary-gray);
+        border-radius: 10px;
+        padding: 0.75rem;
+        text-align: center;
+        border: 1px solid var(--secondary-stone);
+        height: 100%;
+        transition: transform 0.2s;
+    }
+
+    .info-box:hover {
+        transform: translateY(-1px);
+    }
+
+    .info-box i {
+        font-size: 1.15rem;
+        margin-bottom: 3px;
+    }
+
+    .info-box h4 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 2px 0;
+        color: var(--text-dark);
+    }
+
+    .info-box small {
+        font-size: 0.68rem;
+        color: var(--text-light);
+    }
+
+    /* Activity Items */
+    .activity-item {
+        padding: 0.45rem 0.65rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+        margin-bottom: 0.25rem;
+    }
+
+    .activity-item:hover {
+        background: var(--secondary-gray);
+        border-left-color: var(--primary-emerald);
+    }
+
+    /* Rank Item */
+    .rank-item {
+        padding: 0.4rem 0.5rem;
+        border-bottom: 1px solid var(--secondary-stone);
+        transition: background 0.15s;
+    }
+
+    .rank-item:last-child {
+        border-bottom: none;
+    }
+
+    .rank-item:hover {
+        background: var(--secondary-gray);
+    }
+
+    .rank-badge {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 10px;
+        flex-shrink: 0;
+        color: white;
+    }
+
+    .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+    .rank-2 { background: linear-gradient(135deg, #9ca3af, #6b7280); }
+    .rank-3 { background: linear-gradient(135deg, #cd7c2e, #b45309); }
+
+    /* Progress mini */
+    .progress-mini {
+        height: 4px;
+        width: 60px;
+        border-radius: 2px;
+    }
+
+    /* Countdown Badge */
+    .countdown-badge {
+        background: linear-gradient(135deg, var(--primary-emerald), var(--primary-teal));
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 10px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    /* Badge mini */
+    .badge-mini {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 8px;
+    }
+}
+
+    /* Compact stat cards row */
+    .stats-row-compact {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .stats-col {
+        flex: 0 0 calc(25% - 0.375rem);
+        min-width: 0;
+    }
+
+    @media (max-width: 767.98px) {
+        .stats-col { flex: 0 0 calc(50% - 0.25rem); }
+    }
+</style>
+@endpush
+
+@section('content')
+    @php
+        use Carbon\Carbon;
+        use App\Models\Absensi;
+        use App\Models\Santri;
+        use App\Models\User;
+    @endphp
+
+    <!-- Welcome Header -->
+    <div class="dashboard-header text-white">
+        <div class="position-relative" style="z-index: 2;">
+            <h1 class="mb-2">Selamat Datang, Admin</h1>
+            <p class="mb-3 opacity-90">Semoga hari ini menjadi hari yang produktif untuk memantau kehadiran santri.</p>
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-calendar-alt"></i> {{ Carbon::now()->format('l, d F Y') }}
+                </div>
+                <div class="countdown-badge">
+                    <i class="fas fa-clock"></i> <span id="time-display">{{ Carbon::now()->format('H:i:s') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistik Cards - 2 Baris COMPACT HORIZONTAL -->
+    <!-- Baris 1: Total Santri, Denda, Kehadiran, Top -->
+    <div class="row g-2 mb-2">
+        <div class="col-6 col-md-3">
+            <div class="stat-card" style="display:flex !important; flex-direction:row !important; align-items:center !important; height:88px !important; gap:0.75rem !important;">
+                <div class="stat-icon bg-primary-soft"><i class="fas fa-users"></i></div>
+                <div class="stat-data"><h3>{{ $totalSantri ?? 0 }}</h3><p>Total Santri</p></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card" style="display:flex !important; flex-direction:row !important; align-items:center !important; height:88px !important; gap:0.75rem !important;">
+                <div class="stat-icon bg-warning-soft"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="stat-data"><h3>Rp {{ number_format($totalDendaBulan ?? 0, 0, ',', '.') }}</h3><p>Denda</p></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card" style="display:flex !important; flex-direction:row !important; align-items:center !important; height:88px !important; gap:0.75rem !important;">
+                <div class="stat-icon bg-info-soft"><i class="fas fa-percentage"></i></div>
+                <div class="stat-data"><h3>{{ $persentaseKehadiran ?? 0 }}%</h3><p>Kehadiran</p></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card" style="display:flex !important; flex-direction:row !important; align-items:center !important; height:88px !important; gap:0.75rem !important;">
+                <div class="stat-icon bg-purple-soft"><i class="fas fa-trophy"></i></div>
+                <div class="stat-data"><h3>{{ $santriTerajin ?? 0 }}</h3><p>Top</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Baris 2: Status Kehadiran (Hadir, Alpha, Sakit, Izin) SEJAJAR HORIZONTAL -->
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="stat-card" style="display:flex !important; flex-direction:row !important; align-items:center !important; height:88px !important; gap:0.75rem !important;">
+                <div class="stat-icon bg-success-soft"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-data"><h3>{{ $totalHadirHariIni ?? 0 }}</h3><p>Hadir</p></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card" style="display:flex !important; flex-direction:row !important; align-items:center !important; height:88px !important; gap:0.75rem !important;">
+                <div class="stat-icon bg-danger-soft"><i class="fas fa-user-times"></i></div>
+                <div class="stat-data"><h3>{{ $totalAlphaHariIni ?? 0 }}</h3><p>Alpha</p></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card" style="display:flex !important; flex-direction:row !important; align-items:center !important; height:88px !important; gap:0.75rem !important;">
+                <div class="stat-icon bg-sickness-soft"><i class="fas fa-thermometer-arrow-down"></i></div>
+                <div class="stat-data"><h3>{{ $totalSakitHariIni ?? 0 }}</h3><p>Sakit</p></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card" style="display:flex !important; flex-direction:row !important; align-items:center !important; height:88px !important; gap:0.75rem !important;">
+                <div class="stat-icon bg-permission-soft"><i class="fas fa-user-clock"></i></div>
+                <div class="stat-data"><h3>{{ $totalIzinHariIni ?? 0 }}</h3><p>Izin</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row: Info System (4) + Jadwal Hari Ini (8) -->
+    <div class="row g-2 mb-3">
+        <div class="col-lg-4">
+            <div class="section-card">
+                <h5><i class="fas fa-info-circle text-primary-emerald"></i> Informasi Sistem</h5>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="info-box">
+                            <i class="fas fa-user-check text-success"></i>
+                            <h4>{{ $totalHadirHariIni + $totalAlphaHariIni + ($totalIzinHariIni ?? 0) + ($totalSakitHariIni ?? 0) }}</h4>
+                            <small>Total Presensi</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-box">
+                            <i class="fas fa-chalkboard-teacher text-primary"></i>
+                            <h4>{{ $totalPetugas ?? 0 }}</h4>
+                            <small>Petugas Aktif</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-box">
+                            <i class="fas fa-server text-info"></i>
+                            <h4><span class="text-success">●</span></h4>
+                            <small>Server Status</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-box">
+                            <i class="fas fa-exclamation-triangle text-warning"></i>
+                            <h4>{{ $totalPelanggaran ?? 0 }}</h4>
+                            <small>Pelanggaran</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="section-card" style="height:100%;">
+                <h5><i class="fas fa-calendar-day text-primary-emerald"></i> Jadwal Hari Ini</h5>
+                @if(!empty($jadwalHariIni))
+                    @foreach($jadwalHariIni as $index => $jadwal)
+                        <div class="schedule-item {{ $jadwal['active'] ?? false ? 'active' : '' }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div style="min-width: 0; flex: 1;">
+                                    <strong class="text-truncate d-block" style="font-size: 0.85rem;">{{ $jadwal['nama'] }}</strong>
+                                    <small class="text-muted">{{ $jadwal['ustadz'] ?? '' }}</small>
+                                </div>
+                                <div class="text-end ms-2">
+                                    <span class="badge bg-primary badge-mini">{{ $jadwal['jam_mulai'] }} - {{ $jadwal['jam_selesai'] }}</span>
+                                    @if($jadwal['active'] ?? false)
+                                        <div class="countdown-badge mt-1">● Berlangsung</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <p class="text-muted mb-0" style="font-size: 0.85rem;">Tidak ada jadwal hari ini</p>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Row: Chart Bulanan (8) + Distribusi (4) -->
+    <div class="row g-2 mb-3">
+        <div class="col-lg-8">
+            <div class="section-card">
+                <h5><i class="fas fa-chart-line text-primary-emerald"></i> Statistik Kehadiran Bulanan</h5>
+                <div id="attendanceChart" style="height: 220px;"></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="section-card">
+                <h5><i class="fas fa-chart-pie text-primary-emerald"></i> Distribusi Status</h5>
+                <div id="statusChart" style="height: 220px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row: Aktivitas (6) + Top 5 Ranking (6) -->
+    <div class="row g-2">
+        <div class="col-lg-6">
+            <div class="section-card">
+                <h5><i class="fas fa-bolt text-primary-emerald"></i> Aktivitas Terbaru</h5>
+                <div class="activity-timeline" style="max-height: 260px; overflow-y: auto;">
+                    @foreach($recentActivities ?? [] as $activity)
+                        <div class="activity-item d-flex align-items-center">
+                            <div class="me-2">
+                                @if($activity['type'] === 'hadir')
+                                    <span class="badge bg-success badge-mini rounded-pill"><i class="fas fa-check"></i></span>
+                                @elseif($activity['type'] === 'alpha')
+                                    <span class="badge bg-danger badge-mini rounded-pill"><i class="fas fa-times"></i></span>
+                                @elseif($activity['type'] === 'izin')
+                                    <span class="badge bg-warning badge-mini rounded-pill"><i class="fas fa-user-clock"></i></span>
+                                @else
+                                    <span class="badge bg-info badge-mini rounded-pill"><i class="fas fa-user-injured"></i></span>
+                                @endif
+                            </div>
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="fw-medium text-truncate" style="font-size: 0.8rem;">{{ $activity['santri'] }}</div>
+                                <small class="text-muted">{{ $activity['time'] }}</small>
+                            </div>
+                            <span class="badge bg-light text-dark badge-mini">{{ ucfirst($activity['status']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="section-card">
+                <h5><i class="fas fa-crown text-primary-emerald"></i> Top 5 Santri Kehadiran</h5>
+                @foreach($rankingTerbaik ?? [] as $index => $santri)
+                    <div class="rank-item d-flex align-items-center">
+                        <div class="rank-badge rank-{{ $index < 3 ? $index + 1 : '' }} me-2">
+                            @if($index === 0)
+                                <i class="fas fa-crown"></i>
+                            @elseif($index === 1)
+                                <i class="fas fa-medal"></i>
+                            @elseif($index === 2)
+                                <i class="fas fa-award"></i>
+                            @else
+                                {{ $index + 1 }}
+                            @endif
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="fw-medium text-truncate" style="font-size: 0.82rem;">{{ $santri->nama ?? $santri->name }}</div>
+                            <div class="progress-mini bg-light mt-1">
+                                <div class="progress-bar bg-success" style="width:100%; height:100%; border-radius:2px;"></div>
+                            </div>
+                        </div>
+                        <div class="text-end ms-2" style="min-width: 45px;">
+                            <strong style="font-size: 0.85rem;">{{ $santri->hadir_count ?? 0 }}</strong>
+                            <small class="text-muted d-block" style="font-size: 0.6rem; line-height:1;">kehadiran</small>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+@endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.js"></script>
+<script>
+    setInterval(function() {
+        document.getElementById('time-display').textContent = new Date().toLocaleTimeString('id-ID');
+    }, 1000);
+
+    var attendanceOptions = {
+        series: [{
+            name: 'Hadir',
+            data: {!! json_encode($chartData['hadir'] ?? [0,0,0,0,0,0,0,0,0,0,0,0]) !!}
+        }, {
+            name: 'Alpha',
+            data: {!! json_encode($chartData['alpha'] ?? [0,0,0,0,0,0,0,0,0,0,0,0]) !!}
+        }],
+        chart: { type: 'area', height: 220, toolbar: { show: false }, zoom: { enabled: false }},
+        colors: ['#059669', '#ef4444'],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 2.5 },
+        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.25, opacityTo: 0.02 } },
+        markers: { size: 0, hover: { size: 4 } },
+        xaxis: {
+            categories: ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'],
+            labels: { style: { fontSize: '10px', colors: '#94a3b8' } }
+        },
+        yaxis: { labels: { style: { fontSize: '10px', colors: '#94a3b8' } } },
+        grid: { show: true, borderColor: '#f1f5f9', strokeDashArray: 3 },
+        tooltip: { theme: 'light' }
+    };
+    new ApexCharts(document.querySelector("#attendanceChart"), attendanceOptions).render();
+
+    var statusOptions = {
+        series: [@json($stats['hadir'] ?? 0), @json($stats['alpha'] ?? 0), @json($stats['izin'] ?? 0), @json($stats['sakit'] ?? 0)],
+        chart: { type: 'donut', height: 220 },
+        labels: ['Hadir', 'Alpha', 'Izin', 'Sakit'],
+        colors: ['#059669', '#ef4444', '#f59e0b', '#0891b2'],
+        legend: { position: 'bottom', horizontalAlign: 'center', fontSize: '11px', fontFamily: 'Poppins', markers: { width: 10, height: 10 } },
+        plotOptions: { pie: { donut: { size: '55%' } } },
+        dataLabels: { enabled: false }
+    };
+    new ApexCharts(document.querySelector("#statusChart"), statusOptions).render();
+</script>
+@endpush
